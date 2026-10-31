@@ -67,9 +67,21 @@ header.top {
   background: var(--bg); padding-block: 16px 14px;
   display: grid; gap: 10px;
 }
-.toprow { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
-.brand { font-family: var(--f-display); font-weight: 700; font-size: 18px; letter-spacing: -.01em; }
-.stepcount { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.toprow { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 12px; }
+.brand { font-family: var(--f-display); font-weight: 700; font-size: 18px; letter-spacing: -.01em; white-space: nowrap; }
+.syncpill {
+  font: inherit; font-size: 12.5px; font-weight: 600; color: var(--muted); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  background: var(--card); border: 1.5px solid var(--line); border-radius: 99px; padding: 4px 10px;
+}
+.syncpill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--sync, var(--line)); }
+.syncpill[data-s="saved"] { --sync: var(--accent); }
+.syncpill[data-s="saving"], .syncpill[data-s="loading"] { --sync: var(--carbs); }
+.syncpill[data-s="error"] { --sync: var(--warn); color: var(--warn); }
+.topright { display: flex; align-items: center; gap: 10px; }
+.steps-howto { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+.steps-howto b { color: var(--fg); }
+.stepcount { white-space: nowrap; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .bar { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
 .bar > i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 99px; transition: width .35s ease; }
 
@@ -195,7 +207,7 @@ pre.block {
   <header class="top">
     <div class="toprow">
       <span class="brand">Dein Ernährungscoach</span>
-      <span class="stepcount" id="stepcount"></span>
+      <span class="topright"><span class="stepcount" id="stepcount"></span><button type="button" class="syncpill" id="syncbtn" data-s="off">Nur lokal</button></span>
     </div>
     <div class="bar" role="progressbar" aria-label="Fortschritt" aria-valuemin="0" aria-valuemax="100" id="bar"><i id="barfill"></i></div>
   </header>
@@ -221,7 +233,130 @@ pre.block {
     var saved = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
     if (saved && typeof saved === "object") Object.assign(state, saved);
   } catch (e) {}
-  function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {} }
+  function saveLocal() { state.updatedAt = Date.now(); try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {} dirty = true; }
+  function save() { saveLocal(); schedulePush(1500); }
+
+  /* ---------- Speichern auf GitHub ---------- */
+  var CFG_KEY = "ernaehrungscoach-github";
+  var cfg = { token: "", repo: "Linda-EFE/Tracker-Linda", branch: "daten", path: "daten/profil.json" };
+  try { var sc = JSON.parse(localStorage.getItem(CFG_KEY) || "null"); if (sc) Object.assign(cfg, sc); } catch (e) {}
+  var remoteSha = null, dirty = false, pushTimer = null, pushing = false, showSettings = false, syncMsg = "";
+  var syncbtn = document.getElementById("syncbtn");
+  function configured() { return !!(cfg.token && cfg.repo && cfg.branch && cfg.path); }
+  function setSync(s, msg) {
+    var txt = { off: "Nur lokal", loading: "Lädt …", saving: "Speichert …", saved: "Gesichert", error: "Sync-Fehler" }[s];
+    syncbtn.setAttribute("data-s", s); syncbtn.textContent = txt; syncMsg = msg || "";
+    syncbtn.title = msg || txt;
+  }
+  function b64enc(str) { var b = new TextEncoder().encode(str), bin = ""; for (var i = 0; i < b.length; i++) bin += String.fromCharCode(b[i]); return btoa(bin); }
+  function b64dec(str) { var bin = atob(str.replace(/\s/g, "")), b = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i); return new TextDecoder().decode(b); }
+  function api(method, url, body) {
+    return fetch("https://api.github.com" + url, {
+      method: method, cache: "no-store", keepalive: method === "PUT",
+      headers: { Authorization: "Bearer " + cfg.token, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json" },
+      body: body ? JSON.stringify(body) : undefined
+    }).then(function (r) { return r.text().then(function (t) { var d = null; try { d = t ? JSON.parse(t) : null; } catch (e) {} return { status: r.status, data: d }; }); });
+  }
+  function enc(p) { return p.split("/").map(encodeURIComponent).join("/"); }
+  function contentsUrl() { return "/repos/" + cfg.repo + "/contents/" + enc(cfg.path); }
+  function errText(r) {
+    if (r.status === 401) return "Der Zugangsschlüssel (Token) ist ungültig oder abgelaufen.";
+    if (r.status === 403) return "Der Token darf nicht schreiben. Er braucht die Berechtigung „Contents: Read and write“.";
+    if (r.status === 404) return "Repository nicht gefunden. Prüfe den Namen und ob der Token Zugriff darauf hat.";
+    return "GitHub hat mit Fehler " + r.status + " geantwortet" + (r.data && r.data.message ? ": " + r.data.message : ".");
+  }
+  var branchOk = false;
+  function ensureBranch() {
+    if (branchOk) return Promise.resolve(true);
+    return api("GET", "/repos/" + cfg.repo + "/branches/" + encodeURIComponent(cfg.branch)).then(function (r) {
+      if (r.status === 200) return true;
+      if (r.status !== 404) throw r;
+      return api("GET", "/repos/" + cfg.repo).then(function (repo) {
+        if (repo.status !== 200) throw repo;
+        return api("GET", "/repos/" + cfg.repo + "/git/ref/heads/" + encodeURIComponent(repo.data.default_branch));
+      }).then(function (ref) {
+        if (ref.status !== 200) throw ref;
+        return api("POST", "/repos/" + cfg.repo + "/git/refs", { ref: "refs/heads/" + cfg.branch, sha: ref.data.object.sha });
+      }).then(function (c) { if (c.status !== 201) throw c; return true; });
+    }).then(function (ok) { branchOk = true; return ok; });
+  }
+  function pull() {
+    if (!configured()) { setSync("off"); return Promise.resolve(); }
+    setSync("loading");
+    return api("GET", contentsUrl() + "?ref=" + encodeURIComponent(cfg.branch)).then(function (r) {
+      if (r.status === 404) {
+        remoteSha = null;
+        return api("GET", "/repos/" + cfg.repo).then(function (repo) {
+          if (repo.status !== 200) throw repo;
+          return push(true);
+        });
+      }
+      if (r.status !== 200) throw r;
+      remoteSha = r.data.sha;
+      var remote = JSON.parse(b64dec(r.data.content || ""));
+      if (remote && remote.state && (remote.state.updatedAt || 0) > (state.updatedAt || 0)) {
+        Object.assign(state, remote.state);
+        try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
+        dirty = false; errorMsg = ""; if (!showSettings) render();
+        setSync("saved");
+      } else if ((state.updatedAt || 0) > ((remote && remote.state && remote.state.updatedAt) || 0)) {
+        return push(true);
+      } else { dirty = false; setSync("saved"); }
+    }).catch(function (r) { setSync("error", r && r.status ? errText(r) : "Keine Verbindung zu GitHub. Bist du online?"); });
+  }
+  function schedulePush(ms) {
+    if (!configured()) return;
+    clearTimeout(pushTimer); pushTimer = setTimeout(function () { push(); }, ms);
+  }
+  function push(force, retried) {
+    if (!configured() || pushing || (!dirty && !force)) return Promise.resolve();
+    pushing = true; dirty = false; setSync("saving");
+    var body = {
+      message: "Ernährungsplan aktualisiert",
+      content: b64enc(JSON.stringify({ app: "ernaehrungscoach", version: 1, gespeichert: new Date().toISOString(), state: state }, null, 2) + "\n"),
+      branch: cfg.branch
+    };
+    if (remoteSha) body.sha = remoteSha;
+    return ensureBranch().then(function () { return api("PUT", contentsUrl(), body); }).then(function (r) {
+      pushing = false;
+      if (r.status === 200 || r.status === 201) { remoteSha = r.data.content.sha; setSync("saved"); if (dirty) schedulePush(800); return; }
+      if ((r.status === 409 || r.status === 422) && !retried) {
+        return api("GET", contentsUrl() + "?ref=" + encodeURIComponent(cfg.branch)).then(function (g) {
+          remoteSha = g.status === 200 ? g.data.sha : null; dirty = true; return push(true, true);
+        });
+      }
+      dirty = true; throw r;
+    }).catch(function (r) { pushing = false; dirty = true; setSync("error", r && r.status ? errText(r) : "Keine Verbindung zu GitHub. Deine Antworten sind lokal gespeichert und werden später übertragen."); });
+  }
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden" && dirty) push(); else if (document.visibilityState === "visible" && !dirty && !pushing) pull(); });
+  syncbtn.addEventListener("click", function () { showSettings = true; render(); window.scrollTo(0, 0); });
+
+  function renderSettings() {
+    setProgress(0, 1, "");
+    app.innerHTML =
+      '<form class="card fade" id="syncform" novalidate>' +
+        '<div class="q-head"><span class="eyebrow">Speichern auf GitHub</span><h1>Deine Daten auf allen Geräten</h1>' +
+        '<p class="lead">Die App speichert deine Antworten als Datei in deinem GitHub-Repository. So sind sie am Handy und am PC gleich.</p></div>' +
+        (syncMsg ? '<p class="error" role="alert">' + esc(syncMsg) + "</p>" : "") +
+        '<div class="explain"><b>Einmalig pro Gerät: Zugangsschlüssel (Token) anlegen</b>' +
+        '<ol class="steps-howto" style="margin-top:8px">' +
+          '<li>Öffne auf GitHub <b>Settings → Developer settings → Personal access tokens → Fine-grained tokens</b> und tippe auf <b>Generate new token</b>.</li>' +
+          "<li>Name z. B. „Ernährungscoach“, Ablaufdatum nach Wunsch.</li>" +
+          "<li>Bei <b>Repository access</b>: „Only select repositories“ und nur <b>Tracker-Linda</b> wählen.</li>" +
+          "<li>Bei <b>Permissions → Contents</b>: „Read and write“.</li>" +
+          "<li>Token erzeugen, kopieren und hier einfügen.</li>" +
+        "</ol></div>" +
+        '<div class="field"><label for="g-token">Token</label><span class="hint">Bleibt nur auf diesem Gerät gespeichert und wird nie in das Repository geschrieben.</span>' +
+          '<input id="g-token" type="password" autocomplete="off" placeholder="github_pat_…" value="' + esc(cfg.token) + '"></div>' +
+        '<div class="field"><label for="g-repo">Repository</label><input id="g-repo" type="text" autocomplete="off" value="' + esc(cfg.repo) + '"></div>' +
+        '<div class="grid2"><div class="field"><label for="g-branch">Branch</label><input id="g-branch" type="text" autocomplete="off" value="' + esc(cfg.branch) + '"></div>' +
+          '<div class="field"><label for="g-path">Datei</label><input id="g-path" type="text" autocomplete="off" value="' + esc(cfg.path) + '"></div></div>' +
+        '<p class="note">Die Daten landen im eigenen Branch „' + esc(cfg.branch) + '“, damit sie den Code der App nicht stören. Halte das Repository privat, denn die Datei enthält deine Gesundheitsangaben.</p>' +
+        '<div class="nav"><button type="button" class="btn btn-ghost" id="sync-cancel">Abbrechen</button><button type="submit" class="btn btn-primary">Verbinden</button></div>' +
+        (cfg.token ? '<button type="button" class="btn btn-ghost" id="sync-off">Verbindung auf diesem Gerät trennen</button>' : "") +
+      "</form>";
+  }
+
 
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function num(v) { var n = parseFloat(String(v).replace(",", ".")); return isFinite(n) ? n : NaN; }
@@ -377,7 +512,7 @@ pre.block {
 
   app.addEventListener("input", function (e) {
     var k = e.target.getAttribute("data-key");
-    if (k) { state[k] = e.target.value; save(); }
+    if (k) { state[k] = e.target.value; saveLocal(); schedulePush(4000); }
   });
   app.addEventListener("click", function (e) {
     var b = e.target.closest("[data-opt]");
@@ -397,6 +532,8 @@ pre.block {
       c.setAttribute("aria-pressed", String(arr.indexOf(v) >= 0));
       return;
     }
+    if (e.target.id === "sync-cancel") { showSettings = false; render(); return; }
+    if (e.target.id === "sync-off") { cfg.token = ""; try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (er) {} remoteSha = null; showSettings = false; setSync("off"); render(); return; }
     if (e.target.id === "back") { errorMsg = ""; state.step--; save(); renderQuestion(); return; }
     if (e.target.id === "edit") { state.view = "q"; state.step = 0; errorMsg = ""; save(); render(); return; }
     if (e.target.id === "confirm") { state.view = "done"; save(); render(); window.scrollTo(0, 0); return; }
@@ -408,6 +545,19 @@ pre.block {
   });
   app.addEventListener("submit", function (e) {
     e.preventDefault();
+    if (e.target.id === "syncform") {
+      cfg.token = document.getElementById("g-token").value.trim();
+      cfg.repo = document.getElementById("g-repo").value.trim().replace(/^https?:\/\/github\.com\//, "").replace(/\/$/, "");
+      cfg.branch = document.getElementById("g-branch").value.trim() || "daten";
+      cfg.path = document.getElementById("g-path").value.trim().replace(/^\//, "") || "daten/profil.json";
+      try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (er) {}
+      remoteSha = null; branchOk = false;
+      pull().then(function () {
+        if (syncbtn.getAttribute("data-s") === "error") { renderSettings(); return; }
+        showSettings = false; render();
+      });
+      return;
+    }
     var steps = visibleSteps(), s = steps[state.step];
     var msg = s.valid();
     if (msg) { errorMsg = msg; renderQuestion(); return; }
@@ -654,11 +804,13 @@ pre.block {
   }
 
   function render() {
-    if (state.view === "result") renderResult();
+    if (showSettings) renderSettings();
+    else if (state.view === "result") renderResult();
     else if (state.view === "done") renderDone();
     else renderQuestion();
   }
   render();
+  pull();
 })();
 </script>
 </body>
