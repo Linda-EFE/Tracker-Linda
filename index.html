@@ -212,6 +212,17 @@ svg text { font-family: var(--f-body); }
 .macgrid input[type="number"] { padding-right: 12px; }
 .macgrid label, .formgrid label { font-size: 13px; }
 .review { display: grid; gap: 10px; }
+.ai { display: grid; gap: 10px; background: var(--soft); border-radius: 16px; padding: 14px; }
+.ai-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.ai-row .btn { flex: 1 1 130px; min-height: 46px; padding: 10px 14px; white-space: normal; line-height: 1.25; display: inline-flex; align-items: center; justify-content: center; text-align: center; }
+.btn-soft { background: var(--accent-soft); color: var(--fg); border-color: var(--accent-soft); }
+.btn-soft:hover { border-color: var(--accent); }
+.ai textarea { min-height: 60px; font-size: 15px; padding: 10px 12px; }
+.ai-photo { display: flex; gap: 10px; align-items: center; font-size: 13px; color: var(--muted); }
+.ai-photo img { width: 56px; height: 56px; object-fit: cover; border-radius: 10px; flex: none; }
+.ai-result { background: var(--card); border: 1.5px solid var(--accent); border-radius: 12px; padding: 10px 12px; font-size: 14px; margin: 0; }
+.ai-q { background: var(--card); border: 1.5px solid var(--carbs); border-radius: 12px; padding: 10px 12px; font-size: 14px; margin: 0; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .review .facts .v { font-size: 17px; }
 @media (max-width: 380px) { .macgrid { grid-template-columns: repeat(2, minmax(0,1fr)); } .formgrid { grid-template-columns: 1fr; } }
 
@@ -375,7 +386,7 @@ svg text { font-family: var(--f-body); }
     setProgress(0, 1, "");
     app.innerHTML =
       '<form class="card fade" id="syncform" novalidate>' +
-        '<div class="q-head"><span class="eyebrow">Speichern auf GitHub</span><h1>Deine Daten auf allen Geräten</h1>' +
+        '<div class="q-head"><span class="eyebrow">Einstellungen</span><h1>Speichern auf GitHub</h1>' +
         '<p class="lead">Die App speichert deine Antworten als Datei in deinem GitHub-Repository. So sind sie am Handy und am PC gleich.</p></div>' +
         (syncMsg ? '<p class="error" role="alert">' + esc(syncMsg) + "</p>" : "") +
         '<div class="explain"><b>Einmalig pro Gerät: Zugangsschlüssel (Token) anlegen</b>' +
@@ -392,7 +403,16 @@ svg text { font-family: var(--f-body); }
         '<div class="grid2"><div class="field"><label for="g-branch">Branch</label><input id="g-branch" type="text" autocomplete="off" value="' + esc(cfg.branch) + '"></div>' +
           '<div class="field"><label for="g-path">Datei</label><input id="g-path" type="text" autocomplete="off" value="' + esc(cfg.path) + '"></div></div>' +
         '<p class="note">Halte das Daten-Repository privat, denn die Datei enthält deine Gesundheitsangaben. Die App selbst darf in einem öffentlichen Repository liegen.</p>' +
-        '<div class="nav"><button type="button" class="btn btn-ghost" id="sync-cancel">Abbrechen</button><button type="submit" class="btn btn-primary">Verbinden</button></div>' +
+        '<div class="q-head" style="margin-top:8px"><span class="eyebrow">Foto-Auswertung</span><h2>Claude-Schlüssel</h2>' +
+        '<p class="lead">Damit schätzt die App Kalorien und Makros aus einem Foto oder einer kurzen Beschreibung.</p></div>' +
+        '<div class="explain"><b>Einmalig: API-Schlüssel anlegen</b><ol class="steps-howto" style="margin-top:8px">' +
+          "<li>Auf <b>console.anthropic.com</b> ein Konto anlegen und unter <b>Billing</b> etwas Guthaben aufladen (abgerechnet wird pro Foto).</li>" +
+          "<li>Unter <b>API Keys</b> auf <b>Create Key</b> tippen, Namen z. B. „Ernährungscoach“.</li>" +
+          "<li>Schlüssel kopieren und hier einfügen.</li>" +
+        "</ol></div>" +
+        '<div class="field"><label for="c-key">API-Schlüssel</label><span class="hint">Bleibt nur auf diesem Gerät gespeichert und wird nie auf GitHub abgelegt.</span>' +
+          '<input id="c-key" type="password" autocomplete="off" placeholder="sk-ant-…" value="' + esc(aiKey) + '"></div>' +
+        '<div class="nav"><button type="button" class="btn btn-ghost" id="sync-cancel">Abbrechen</button><button type="submit" class="btn btn-primary">Speichern</button></div>' +
         (cfg.token ? '<button type="button" class="btn btn-ghost" id="sync-off">Verbindung auf diesem Gerät trennen</button>' : "") +
       "</form>";
   }
@@ -587,7 +607,11 @@ svg text { font-family: var(--f-body); }
     if (e.target.id === "totracker") { state.view = "tracker"; save(); render(); window.scrollTo(0, 0); return; }
     if (e.target.id === "day-prev") { selDay = shiftDay(selDay, -1); editingId = null; renderTracker(); return; }
     if (e.target.id === "day-next") { selDay = shiftDay(selDay, 1); editingId = null; renderTracker(); return; }
-    if (e.target.id === "meal-cancel") { editingId = null; draft = {}; renderTracker(); return; }
+    if (e.target.id === "meal-cancel") { editingId = null; draft = {}; resetAi(); renderTracker(); return; }
+    if (e.target.id === "ai-text") { analyze(false); return; }
+    if (e.target.id === "ai-again") { analyze(!!photo); return; }
+    if (e.target.id === "ai-photo-clear") { photo = null; aiNote = ""; aiQuestion = ""; renderTracker(); return; }
+    if (e.target.id === "ai-setup") { showSettings = true; render(); window.scrollTo(0, 0); setTimeout(function () { var k = document.getElementById("c-key"); if (k) k.scrollIntoView({ block: "center" }); }, 50); return; }
     var mb = e.target.closest("[data-meal]");
     if (mb) {
       var act = mb.getAttribute("data-act"), id = mb.getAttribute("data-meal");
@@ -606,6 +630,8 @@ svg text { font-family: var(--f-body); }
       cfg.repo = document.getElementById("g-repo").value.trim().replace(/^https?:\/\/github\.com\//, "").replace(/\/$/, "");
       cfg.branch = document.getElementById("g-branch").value.trim() || "main";
       cfg.path = document.getElementById("g-path").value.trim().replace(/^\//, "") || "profil.json";
+      aiKey = document.getElementById("c-key").value.trim();
+      try { localStorage.setItem(AI_KEY, aiKey); } catch (er) {}
       try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (er) {}
       remoteSha = null; branchOk = false;
       pull().then(function () {
@@ -769,6 +795,120 @@ svg text { font-family: var(--f-body); }
     return '<div class="macro" style="--c:var(' + c + ')"><span class="lbl">' + lbl + '</span><span class="g">' + g + '<small> g</small></span><span class="sub">' + Math.round(k / tot * 100) + " %" + (sub ? " · " + sub : "") + "</span></div>";
   }
 
+  /* ---------- Foto-Auswertung mit Claude ---------- */
+  var AI_KEY = "ernaehrungscoach-claude-key", aiKey = "";
+  try { aiKey = localStorage.getItem(AI_KEY) || ""; } catch (e) {}
+  var photo = null, aiBusy = false, aiNote = "", aiQuestion = "", aiError = "";
+  function resetAi() { photo = null; aiBusy = false; aiNote = ""; aiQuestion = ""; aiError = ""; }
+  var MEAL_SCHEMA = {
+    type: "object", additionalProperties: false,
+    required: ["name", "annahme", "kcal", "eiweiss_g", "kohlenhydrate_g", "fett_g", "rueckfrage"],
+    properties: {
+      name: { type: "string", description: "Kurzer Name der Mahlzeit auf Deutsch" },
+      annahme: { type: "string", description: "Ein Satz: welche Portion und Zubereitung du annimmst" },
+      kcal: { type: "number" }, eiweiss_g: { type: "number" }, kohlenhydrate_g: { type: "number" }, fett_g: { type: "number" },
+      rueckfrage: { type: "string", description: "Genau eine kurze Rückfrage, wenn du wirklich unsicher bist, sonst leerer String" }
+    }
+  };
+  function aiBlock() {
+    if (editingId) return "";
+    var inner;
+    if (!aiKey) {
+      inner = '<p class="note" style="margin:0">Mit einem Claude-Schlüssel schätzt die App Kalorien und Makros aus einem Foto.</p>' +
+        '<div class="ai-row"><button type="button" class="btn btn-soft" id="ai-setup">Foto-Auswertung einrichten</button></div>';
+    } else {
+      inner =
+        '<div class="ai-row">' +
+          '<label class="btn btn-soft" for="ai-file" role="button" style="text-align:center">' + (photo ? "Anderes Foto" : "Foto aufnehmen") + "</label>" +
+          '<button type="button" class="btn btn-soft" id="ai-text"' + (aiBusy ? " disabled" : "") + ">Aus Beschreibung schätzen</button>" +
+        "</div>" +
+        '<input id="ai-file" class="visually-hidden" type="file" accept="image/*" capture="environment" tabindex="-1">' +
+        (photo ? '<div class="ai-photo"><img src="' + photo.url + '" alt="Dein Foto"><span>' + (aiBusy ? "Foto wird ausgewertet …" : "Dein Foto") + '</span><button type="button" class="linkbtn" id="ai-photo-clear">Entfernen</button></div>' : "") +
+        '<div class="field"><label for="m-desc">Beschreibung (optional)</label><textarea id="m-desc" data-draft="desc" placeholder="z. B. großer Teller, mit Sahnesoße, halb aufgegessen">' + esc(draft.desc || "") + "</textarea></div>" +
+        (aiBusy ? '<p class="note" style="margin:0">Claude schätzt gerade …</p>' : "") +
+        (aiQuestion ? '<p class="ai-q"><b>Rückfrage:</b> ' + esc(aiQuestion) + '<br><span class="note">Antworte im Feld „Beschreibung“ und tippe auf „Neu schätzen“.</span></p>' : "") +
+        (aiNote ? '<p class="ai-result"><b>Annahme:</b> ' + esc(aiNote) + "<br><span class=\"note\">Prüf die Werte unten und tippe dann auf „Eintragen“.</span></p>" : "") +
+        ((aiNote || aiQuestion || (aiError && (photo || draft.desc || draft.name))) && !aiBusy ? '<div class="ai-row"><button type="button" class="btn btn-ghost" id="ai-again">Neu schätzen</button></div>' : "") +
+        (aiError ? '<p class="error" role="alert">' + esc(aiError) + "</p>" : "");
+    }
+    return '<div class="ai">' + inner + "</div>";
+  }
+  function shrinkImage(file) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () {
+        var max = 1280, w = img.naturalWidth, h = img.naturalHeight, sc = Math.min(1, max / Math.max(w, h));
+        var cv = document.createElement("canvas"); cv.width = Math.round(w * sc); cv.height = Math.round(h * sc);
+        cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+        var dataUrl = cv.toDataURL("image/jpeg", 0.85);
+        URL.revokeObjectURL(url);
+        resolve({ url: dataUrl, data: dataUrl.split(",")[1], type: "image/jpeg" });
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error("bild")); };
+      img.src = url;
+    });
+  }
+  app.addEventListener("change", function (e) {
+    if (e.target.id !== "ai-file" || !e.target.files || !e.target.files[0]) return;
+    shrinkImage(e.target.files[0]).then(function (ph) { photo = ph; analyze(true); })
+      .catch(function () { aiError = "Das Foto konnte nicht gelesen werden. Versuch es mit einem anderen Bild."; renderTracker(); });
+  });
+  function aiErrText(status, body) {
+    var msg = body && body.error && body.error.message || "";
+    if (status === 401) return "Der Claude-Schlüssel ist ungültig. Prüf ihn in den Einstellungen (oben rechts).";
+    if (status === 400 && /credit|balance/i.test(msg)) return "Dein Guthaben bei Anthropic ist aufgebraucht. Lade es unter console.anthropic.com → Billing auf.";
+    if (status === 429) return "Zu viele Anfragen in kurzer Zeit. Warte eine Minute und versuch es noch einmal.";
+    if (status === 529 || status >= 500) return "Claude ist gerade überlastet. Versuch es in ein paar Minuten noch einmal.";
+    return "Die Auswertung hat nicht geklappt (Fehler " + status + (msg ? ": " + msg : "") + ").";
+  }
+  function analyze(withPhoto) {
+    var desc = (draft.desc || "").trim(), name = (draft.name || "").trim();
+    if (!withPhoto && !desc && !name) { aiError = "Beschreib kurz, was du gegessen hast, oder mach ein Foto."; renderTracker(); return; }
+    aiBusy = true; aiError = ""; aiNote = ""; aiQuestion = ""; renderTracker();
+    var diet = LABELS.diet[state.diet] || "keine Angabe";
+    var system = "Du bist ein Ernährungscoach und schätzt Mahlzeiten für ein Kalorientagebuch. " +
+      "Schätze die Portion realistisch und gib Kalorien, Eiweiß, Kohlenhydrate und Fett für die gesamte gezeigte bzw. beschriebene Portion an. " +
+      "Antworte auf Deutsch. Die Person ernährt sich: " + diet + (state.avoid ? "; isst nicht: " + state.avoid : "") + ". " +
+      "Stell nur dann genau eine kurze Rückfrage, wenn eine Angabe die Schätzung stark verändern würde (z. B. Portionsgröße nicht erkennbar); gib trotzdem deine beste Schätzung ab. " +
+      "Ist auf dem Bild kein Essen zu sehen, setze alle Werte auf 0 und frag nach.";
+    var content = [];
+    if (withPhoto && photo) content.push({ type: "image", source: { type: "base64", media_type: photo.type, data: photo.data } });
+    var parts = [withPhoto && photo ? "Schätze die Mahlzeit auf dem Foto." : "Schätze diese Mahlzeit."];
+    if (name) parts.push("Name: " + name);
+    if (desc) parts.push("Hinweise von mir: " + desc);
+    content.push({ type: "text", text: parts.join("\n") });
+    fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": aiKey,
+        "anthropic-version": "2026-10-21",
+        "anthropic-beta": "server-side-fallback-2026-07-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({
+        model: "claude-opus-5-5",
+        max_tokens: 16000,
+        fallbacks: "default",
+        system: system,
+        output_config: { format: { type: "json_schema", schema: MEAL_SCHEMA } },
+        messages: [{ role: "user", content: content }]
+      })
+    }).then(function (r) {
+      return r.json().catch(function () { return null; }).then(function (body) {
+        aiBusy = false;
+        if (!r.ok) { aiError = aiErrText(r.status, body); return; }
+        if (body.stop_reason === "refusal") { aiError = "Claude konnte dieses Bild nicht auswerten. Trag die Werte bitte von Hand ein."; return; }
+        var txt = (body.content || []).filter(function (b) { return b.type === "text"; }).map(function (b) { return b.text; }).join("");
+        var res; try { res = JSON.parse(txt); } catch (er) { aiError = "Die Antwort war unvollständig. Tippe auf „Neu schätzen“."; return; }
+        draft.name = res.name || draft.name;
+        draft.kcal = Math.round(res.kcal); draft.p = Math.round(res.eiweiss_g); draft.c = Math.round(res.kohlenhydrate_g); draft.f = Math.round(res.fett_g);
+        aiNote = res.annahme || ""; aiQuestion = (res.rueckfrage || "").trim();
+      });
+    }).catch(function () { aiBusy = false; aiError = "Keine Verbindung zu Claude. Bist du online?"; })
+      .then(function () { if (state.view === "tracker" && !showSettings) renderTracker(); });
+  }
+
   /* ---------- Tracker ---------- */
   var selDay = dayKey(new Date()), editingId = null, draft = {}, mealError = "";
   function pad(n) { return (n < 10 ? "0" : "") + n; }
@@ -793,8 +933,8 @@ svg text { font-family: var(--f-body); }
     var over = pct > 1.0001, shown = Math.min(pct, 1);
     return '<svg viewBox="0 0 ' + size + " " + size + '" role="img" aria-label="' + Math.round(value) + " von " + goal + '">' +
       '<circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" fill="none" stroke="var(--line)" stroke-width="' + stroke + '"></circle>' +
-      '<circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" fill="none" stroke="' + (over ? "var(--warn)" : color) + '" stroke-width="' + stroke + '" stroke-linecap="round" ' +
-        'stroke-dasharray="' + (c * shown).toFixed(1) + " " + c.toFixed(1) + '" transform="rotate(-90 ' + size / 2 + " " + size / 2 + ')"></circle>' +
+      (shown <= 0 ? "" : '<circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" fill="none" stroke="' + (over ? "var(--warn)" : color) + '" stroke-width="' + stroke + '" stroke-linecap="round" ' +
+        'stroke-dasharray="' + (c * shown).toFixed(1) + " " + c.toFixed(1) + '" transform="rotate(-90 ' + size / 2 + " " + size / 2 + ')"></circle>') +
       center + "</svg>";
   }
 
@@ -851,7 +991,7 @@ svg text { font-family: var(--f-body); }
     var at = -1; list.forEach(function (m, i) { if (m.id === entry.id) at = i; });
     if (at >= 0) list[at] = entry; else list.push(entry);
     list.sort(function (x, y) { return x.time < y.time ? -1 : x.time > y.time ? 1 : 0; });
-    editingId = null; draft = {}; mealError = "";
+    editingId = null; draft = {}; mealError = ""; resetAi();
     save(); renderTracker();
   }
 
@@ -888,6 +1028,7 @@ svg text { font-family: var(--f-body); }
         }).join("") + "</ul>" : '<p class="empty">Trag unten deine erste Mahlzeit für diesen Tag ein.</p>') +
       "</section>" +
       '<form class="card fade" id="mealform" novalidate><div class="q-head"><span class="eyebrow">' + (editingId ? "Eintrag ändern" : "Mahlzeit eintragen") + "</span><h2>" + (editingId ? "Was soll ich korrigieren?" : "Was hast du gegessen?") + "</h2></div>" +
+        aiBlock() +
         '<div class="formgrid"><div class="field"><label for="m-time">Uhrzeit</label><input id="m-time" data-draft="time" type="time" value="' + esc(d.time || (selDay === today ? nowTime() : "12:00")) + '"></div>' +
           '<div class="field"><label for="m-name">Mahlzeit</label><input id="m-name" data-draft="name" type="text" autocomplete="off" placeholder="z. B. Haferflocken mit Beeren" value="' + esc(d.name || "") + '"></div></div>' +
         '<div class="macgrid">' +

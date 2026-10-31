@@ -6,7 +6,19 @@ Eine kleine Web-App im Handy-Look, die ohne weitere Dienste läuft.
 2. **Plan:** Kalorien, Eiweiß, Kohlenhydrate und Fett pro Tag, die erwartete Veränderung pro Woche, das voraussichtliche Datum für dein Zielgewicht und drei persönliche Tipps.
 3. **Tracker:** ein großer Kalorien-Ring für den Tag, drei Ringe für Eiweiß, Kohlenhydrate und Fett, ein Tagebuch mit allen Mahlzeiten und ein 7-Tage-Verlauf. Einträge kannst du ändern und löschen, auch für vergangene Tage. Sonntags zeigt die App einen Wochenrückblick mit genau einer Anpassung für die nächste Woche.
 
+4. **Foto-Auswertung:** Foto aufnehmen oder kurz beschreiben, was du gegessen hast. Claude schätzt dann Portion, Kalorien und Makros, nennt seine Annahme und stellt bei Unsicherheit genau eine Rückfrage. Du prüfst die Werte und trägst sie ein.
+
 Alles steckt in einer Datei: `index.html`.
+
+## Foto-Auswertung einrichten
+
+Die App nutzt dafür die Claude-Schnittstelle (API) von Anthropic. Die ist nicht im Claude-Abo enthalten und wird nach Nutzung abgerechnet, grob etwa 1 Cent pro Foto.
+
+1. Auf https://console.anthropic.com ein Konto anlegen und unter **Billing** Guthaben aufladen.
+2. Unter **API Keys** einen Schlüssel erstellen.
+3. In der App oben rechts die Einstellungen öffnen und den Schlüssel bei **Claude-Schlüssel** einfügen.
+
+Der Schlüssel bleibt nur im Browser des jeweiligen Geräts gespeichert. Er wird nie auf GitHub abgelegt.
 
 ## Daten auf GitHub speichern (Handy und PC im Abgleich)
 
