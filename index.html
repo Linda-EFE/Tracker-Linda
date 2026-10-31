@@ -280,7 +280,7 @@ svg text { font-family: var(--f-body); }
   function setSync(s, msg) {
     var txt = { off: "Nur lokal", loading: "Lädt …", saving: "Speichert …", saved: "Gesichert", error: "Sync-Fehler" }[s];
     syncbtn.setAttribute("data-s", s); syncbtn.textContent = txt; syncMsg = msg || "";
-    syncbtn.title = msg || txt;
+    syncbtn.title = (msg || txt) + " · Einstellungen öffnen";
   }
   function b64enc(str) { var b = new TextEncoder().encode(str), bin = ""; for (var i = 0; i < b.length; i++) bin += String.fromCharCode(b[i]); return btoa(bin); }
   function b64dec(str) { var bin = atob(str.replace(/\s/g, "")), b = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) b[i] = bin.charCodeAt(i); return new TextDecoder().decode(b); }
@@ -611,6 +611,7 @@ svg text { font-family: var(--f-body); }
     if (e.target.id === "ai-text") { analyze(false); return; }
     if (e.target.id === "ai-again") { analyze(!!photo); return; }
     if (e.target.id === "ai-photo-clear") { photo = null; aiNote = ""; aiQuestion = ""; renderTracker(); return; }
+    if (e.target.id === "open-settings") { showSettings = true; render(); window.scrollTo(0, 0); return; }
     if (e.target.id === "ai-setup") { showSettings = true; render(); window.scrollTo(0, 0); setTimeout(function () { var k = document.getElementById("c-key"); if (k) k.scrollIntoView({ block: "center" }); }, 50); return; }
     var mb = e.target.closest("[data-meal]");
     if (mb) {
@@ -1044,7 +1045,8 @@ svg text { font-family: var(--f-body); }
       "</form>" +
       '<section class="card fade"><div class="q-head"><span class="eyebrow">Verlauf</span><h2>Kalorien der letzten 7 Tage</h2></div><div class="chart">' + weekChart(selDay, P.kcal) + "</div>" +
         (isSunday ? "" : '<p class="note">Sonntags siehst du hier oben deinen Wochenrückblick mit einer Anpassung für die nächste Woche.</p>') + "</section>" +
-      '<div class="nav"><button type="button" class="btn btn-ghost" id="toresult" style="flex:1">Mein Plan</button><button type="button" class="btn btn-ghost" id="edit" style="flex:1">Antworten ändern</button></div>';
+      '<div class="nav"><button type="button" class="btn btn-ghost" id="toresult" style="flex:1">Mein Plan</button><button type="button" class="btn btn-ghost" id="edit" style="flex:1">Antworten ändern</button></div>' +
+      '<button type="button" class="btn btn-ghost" id="open-settings" style="width:100%">Einstellungen (GitHub &amp; Claude-Schlüssel)</button>';
   }
 
   function render() {
