@@ -1,8 +1,12 @@
 # Tracker-Linda – Ernährungscoach
 
-Eine kleine Web-App im Handy-Look. Sie stellt dir 13 Fragen und berechnet daraus deinen Kalorien- und Makroplan (Mifflin-St Jeor, Aktivitätsfaktor, Leitplanken für Mindestkalorien und Abnahmetempo). Am Ende erstellt sie einen Anweisungsblock für deine Claude-Projektanweisungen.
+Eine kleine Web-App im Handy-Look, die ohne weitere Dienste läuft.
 
-Alles steckt in einer Datei: `index.html`. Es gibt keinen Server und keine Installation. Die App läuft ohne Claude.
+1. **Interview:** 13 Fragen. Daraus berechnet die App deinen Kalorien- und Makroplan nach Mifflin-St Jeor mit Aktivitätsfaktor. Sie geht nie unter 1.200 kcal (Frauen) bzw. 1.500 kcal (Männer) und plant höchstens 0,75 kg Abnahme pro Woche.
+2. **Plan:** Kalorien, Eiweiß, Kohlenhydrate und Fett pro Tag, die erwartete Veränderung pro Woche, das voraussichtliche Datum für dein Zielgewicht und drei persönliche Tipps.
+3. **Tracker:** ein großer Kalorien-Ring für den Tag, drei Ringe für Eiweiß, Kohlenhydrate und Fett, ein Tagebuch mit allen Mahlzeiten und ein 7-Tage-Verlauf. Einträge kannst du ändern und löschen, auch für vergangene Tage. Sonntags zeigt die App einen Wochenrückblick mit genau einer Anpassung für die nächste Woche.
+
+Alles steckt in einer Datei: `index.html`.
 
 ## Daten auf GitHub speichern (Handy und PC im Abgleich)
 
