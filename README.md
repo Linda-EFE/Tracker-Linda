@@ -6,28 +6,24 @@ Alles steckt in einer Datei: `index.html`. Es gibt keinen Server und keine Insta
 
 ## Daten auf GitHub speichern (Handy und PC im Abgleich)
 
-Die App speichert deine Antworten als Datei `daten/profil.json` im Branch `daten` dieses Repositorys. Den Branch legt sie beim ersten Speichern selbst an. Jedes Gerät liest beim Öffnen den neuesten Stand.
+Code und Daten liegen getrennt:
+
+- **`Tracker-Linda`** (dieses Repository, öffentlich): nur der Code der App.
+- **`Tracker-Linda-Daten`** (privat): Hier speichert die App deine Antworten als `profil.json` im Branch `main`.
+
+Jedes Gerät liest beim Öffnen den neuesten Stand.
 
 Einmal pro Gerät einrichten:
 
-1. Auf GitHub: **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.
-2. Bei **Repository access** „Only select repositories“ wählen und nur `Tracker-Linda` auswählen.
+1. Fine-grained Token anlegen: https://github.com/settings/personal-access-tokens/new
+2. Bei **Repository access** „Only select repositories“ wählen und nur `Tracker-Linda-Daten` auswählen.
 3. Bei **Permissions → Contents** „Read and write“ einstellen.
-4. Token erzeugen und kopieren.
-5. In der App oben rechts auf **Nur lokal** tippen, den Token einfügen und auf **Verbinden** tippen.
+4. In der App oben rechts auf **Nur lokal** tippen, den Token einfügen und auf **Verbinden** tippen.
 
-Der Token bleibt nur im Browser des jeweiligen Geräts gespeichert. Er wird nie ins Repository geschrieben.
+Der Token bleibt nur im Browser des jeweiligen Geräts gespeichert.
 
-**Halte das Repository privat.** Die Datendatei enthält deine Gesundheitsangaben.
+## Im Browser öffnen (GitHub Pages)
 
-## Im Browser öffnen
-
-GitHub Pages geht bei privaten Repositories nur mit einem kostenpflichtigen GitHub-Plan. Kostenlos und privat geht es mit Cloudflare Pages:
-
-1. Im Cloudflare-Dashboard: **Workers & Pages → Create → Pages → Connect to Git**.
-2. `Linda-EFE/Tracker-Linda` auswählen.
-3. Als Production branch `main` wählen. Framework: „None“, Build command leer lassen, Build output directory: `/`.
-4. Unter **Settings → Builds → Branch control** die Preview-Builds abschalten (Preview branch: „None“). Dann baut das Speichern deiner Daten im Branch `daten` die Seite nicht jedes Mal neu.
-5. Die App läuft dann unter `https://<projektname>.pages.dev`, auf dem Handy und am PC.
-
-Lokal geht es auch: `index.html` doppelt anklicken.
+1. **Settings → Pages** öffnen und bei *Source* „Deploy from a branch“ wählen.
+2. Branch `claude/stoic-archimedes-1050jp` und Ordner `/ (root)` wählen, dann **Save**.
+3. Die App läuft unter https://linda-efe.github.io/Tracker-Linda/

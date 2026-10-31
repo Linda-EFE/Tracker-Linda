@@ -238,7 +238,7 @@ pre.block {
 
   /* ---------- Speichern auf GitHub ---------- */
   var CFG_KEY = "ernaehrungscoach-github";
-  var cfg = { token: "", repo: "Linda-EFE/Tracker-Linda", branch: "daten", path: "daten/profil.json" };
+  var cfg = { token: "", repo: "Linda-EFE/Tracker-Linda-Daten", branch: "main", path: "profil.json" };
   try { var sc = JSON.parse(localStorage.getItem(CFG_KEY) || "null"); if (sc) Object.assign(cfg, sc); } catch (e) {}
   var remoteSha = null, dirty = false, pushTimer = null, pushing = false, showSettings = false, syncMsg = "";
   var syncbtn = document.getElementById("syncbtn");
@@ -342,7 +342,7 @@ pre.block {
         '<ol class="steps-howto" style="margin-top:8px">' +
           '<li>Öffne auf GitHub <b>Settings → Developer settings → Personal access tokens → Fine-grained tokens</b> und tippe auf <b>Generate new token</b>.</li>' +
           "<li>Name z. B. „Ernährungscoach“, Ablaufdatum nach Wunsch.</li>" +
-          "<li>Bei <b>Repository access</b>: „Only select repositories“ und nur <b>Tracker-Linda</b> wählen.</li>" +
+          "<li>Bei <b>Repository access</b>: „Only select repositories“ und nur <b>Tracker-Linda-Daten</b> wählen.</li>" +
           "<li>Bei <b>Permissions → Contents</b>: „Read and write“.</li>" +
           "<li>Token erzeugen, kopieren und hier einfügen.</li>" +
         "</ol></div>" +
@@ -351,7 +351,7 @@ pre.block {
         '<div class="field"><label for="g-repo">Repository</label><input id="g-repo" type="text" autocomplete="off" value="' + esc(cfg.repo) + '"></div>' +
         '<div class="grid2"><div class="field"><label for="g-branch">Branch</label><input id="g-branch" type="text" autocomplete="off" value="' + esc(cfg.branch) + '"></div>' +
           '<div class="field"><label for="g-path">Datei</label><input id="g-path" type="text" autocomplete="off" value="' + esc(cfg.path) + '"></div></div>' +
-        '<p class="note">Die Daten landen im eigenen Branch „' + esc(cfg.branch) + '“, damit sie den Code der App nicht stören. Halte das Repository privat, denn die Datei enthält deine Gesundheitsangaben.</p>' +
+        '<p class="note">Halte das Daten-Repository privat, denn die Datei enthält deine Gesundheitsangaben. Die App selbst darf in einem öffentlichen Repository liegen.</p>' +
         '<div class="nav"><button type="button" class="btn btn-ghost" id="sync-cancel">Abbrechen</button><button type="submit" class="btn btn-primary">Verbinden</button></div>' +
         (cfg.token ? '<button type="button" class="btn btn-ghost" id="sync-off">Verbindung auf diesem Gerät trennen</button>' : "") +
       "</form>";
@@ -548,8 +548,8 @@ pre.block {
     if (e.target.id === "syncform") {
       cfg.token = document.getElementById("g-token").value.trim();
       cfg.repo = document.getElementById("g-repo").value.trim().replace(/^https?:\/\/github\.com\//, "").replace(/\/$/, "");
-      cfg.branch = document.getElementById("g-branch").value.trim() || "daten";
-      cfg.path = document.getElementById("g-path").value.trim().replace(/^\//, "") || "daten/profil.json";
+      cfg.branch = document.getElementById("g-branch").value.trim() || "main";
+      cfg.path = document.getElementById("g-path").value.trim().replace(/^\//, "") || "profil.json";
       try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (er) {}
       remoteSha = null; branchOk = false;
       pull().then(function () {
