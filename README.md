@@ -12,10 +12,10 @@ Alles steckt in einer Datei: `index.html`.
 
 ## Foto-Auswertung einrichten
 
-Die App nutzt dafür die Claude-Schnittstelle (API) von Anthropic. Die ist nicht im Claude-Abo enthalten und wird nach Nutzung abgerechnet, grob etwa 1 Cent pro Foto.
+Die App nutzt dafür die Claude-Schnittstelle (API). Abgerechnet wird nach Nutzung, grob etwa 1 Cent pro Foto. Das Claude-Max-Abo enthält monatliches API-Guthaben, das du auf https://platform.claude.com einlösen kannst.
 
-1. Auf https://console.anthropic.com ein Konto anlegen und unter **Billing** Guthaben aufladen.
-2. Unter **API Keys** einen Schlüssel erstellen.
+1. Auf https://platform.claude.com anmelden und das Guthaben einlösen (oder unter **Guthaben** aufladen).
+2. Unter **API-Schlüssel** einen Schlüssel erstellen.
 3. In der App oben rechts die Einstellungen öffnen und den Schlüssel bei **Claude-Schlüssel** einfügen.
 
 Der Schlüssel bleibt nur im Browser des jeweiligen Geräts gespeichert. Er wird nie auf GitHub abgelegt.

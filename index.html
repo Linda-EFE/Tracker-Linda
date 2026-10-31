@@ -406,8 +406,8 @@ svg text { font-family: var(--f-body); }
         '<div class="q-head" style="margin-top:8px"><span class="eyebrow">Foto-Auswertung</span><h2>Claude-Schlüssel</h2>' +
         '<p class="lead">Damit schätzt die App Kalorien und Makros aus einem Foto oder einer kurzen Beschreibung.</p></div>' +
         '<div class="explain"><b>Einmalig: API-Schlüssel anlegen</b><ol class="steps-howto" style="margin-top:8px">' +
-          "<li>Auf <b>console.anthropic.com</b> ein Konto anlegen und unter <b>Billing</b> etwas Guthaben aufladen (abgerechnet wird pro Foto).</li>" +
-          "<li>Unter <b>API Keys</b> auf <b>Create Key</b> tippen, Namen z. B. „Ernährungscoach“.</li>" +
+          "<li>Auf <b>platform.claude.com</b> anmelden. Mit einem Claude-Max-Abo kannst du dort monatliches API-Guthaben einlösen, sonst lädst du unter <b>Guthaben</b> etwas auf (abgerechnet wird pro Foto).</li>" +
+          "<li>Unter <b>API-Schlüssel</b> einen neuen Schlüssel erstellen, Name z. B. „Ernährungscoach“.</li>" +
           "<li>Schlüssel kopieren und hier einfügen.</li>" +
         "</ol></div>" +
         '<div class="field"><label for="c-key">API-Schlüssel</label><span class="hint">Bleibt nur auf diesem Gerät gespeichert und wird nie auf GitHub abgelegt.</span>' +
@@ -856,7 +856,7 @@ svg text { font-family: var(--f-body); }
   function aiErrText(status, body) {
     var msg = body && body.error && body.error.message || "";
     if (status === 401) return "Der Claude-Schlüssel ist ungültig. Prüf ihn in den Einstellungen (oben rechts).";
-    if (status === 400 && /credit|balance/i.test(msg)) return "Dein Guthaben bei Anthropic ist aufgebraucht. Lade es unter console.anthropic.com → Billing auf.";
+    if (status === 400 && /credit|balance/i.test(msg)) return "Dein Guthaben bei Anthropic ist aufgebraucht. Lade es unter platform.claude.com → Guthaben auf.";
     if (status === 429) return "Zu viele Anfragen in kurzer Zeit. Warte eine Minute und versuch es noch einmal.";
     if (status === 529 || status >= 500) return "Claude ist gerade überlastet. Versuch es in ein paar Minuten noch einmal.";
     return "Die Auswertung hat nicht geklappt (Fehler " + status + (msg ? ": " + msg : "") + ").";
