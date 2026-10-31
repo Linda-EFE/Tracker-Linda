@@ -25,5 +25,5 @@ Der Token bleibt nur im Browser des jeweiligen Geräts gespeichert.
 ## Im Browser öffnen (GitHub Pages)
 
 1. **Settings → Pages** öffnen und bei *Source* „Deploy from a branch“ wählen.
-2. Branch `claude/stoic-archimedes-1050jp` und Ordner `/ (root)` wählen, dann **Save**.
+2. Branch `main` und Ordner `/ (root)` wählen, dann **Save**.
 3. Die App läuft unter https://linda-efe.github.io/Tracker-Linda/
